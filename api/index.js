@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require("mongoose");
 const User = require('./models/User.js');
+const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
@@ -11,6 +12,7 @@ const bcryptSalt = bcrypt.genSaltSync(10);
 const jwtSecret = 'asdflkjhasfaseuh';
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(cors({
     credentials: true,
     origin: 'http://localhost:5173',
@@ -48,7 +50,10 @@ app.post('/login', async (req, res) => {
     if (userDoc) {
         const passOK = bcrypt.compareSync(password, userDoc.password);
         if (passOK) {
-            jwt.sign({ email: userDoc.email, id: userDoc._id }, jwtSecret, {}, (err, token) => {
+            jwt.sign({
+                email: userDoc.email,
+                id: userDoc._id
+            }, jwtSecret, {}, (err, token) => {
                 if (err) throw err;
                 res.cookie('token', token).json(userDoc);
             });
@@ -60,6 +65,19 @@ app.post('/login', async (req, res) => {
     }
     else {
         res.json('not found');
+    }
+});
+
+app.get('/profile', (req, res) => {
+    const { token } = req.cookies;
+    if (token) {
+        jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+            if (err) throw err;
+            const { name, email, _id } = await User.findById(userData.id)
+            res.json({ name, email, _id });
+        })
+    } else {
+        res.json(null);
     }
 })
 
