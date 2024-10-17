@@ -7,12 +7,15 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 const app = express();
+const imageDownloader = require('image-downloader');
 
 const bcryptSalt = bcrypt.genSaltSync(10);
 const jwtSecret = 'asdflkjhasfaseuh';
 
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(__dirname + '/uploads'));
+
 app.use(cors({
     credentials: true,
     origin: 'http://localhost:5173',
@@ -86,5 +89,31 @@ app.post('/logout', (req, res) => {
     res.cookie('token', '').json(true);
 }
 );
+
+// console.log({ __dirname })
+// app.post('/upload-by-link', async (req, res) => {
+//     const { link } = req.body;
+//     const newName = 'photo' + Date.now() + '.jpg';
+//     await imageDownloader.image({
+//         url: link,
+//         dest: __dirname + '/../api/uploads/' + newName,
+//     });
+//     res.json(newName);
+// })
+
+const path = require('path');
+
+app.post('/upload-by-link', async (req, res) => {
+    const { link } = req.body;
+    const newName = 'photo' + Date.now() + '.jpg';
+    const destPath = path.join(__dirname, '..', 'api', 'uploads', newName);
+
+    await imageDownloader.image({
+        url: link,
+        dest: destPath,
+    });
+
+    res.json(newName);
+});
 
 app.listen(4000);
